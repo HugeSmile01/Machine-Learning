@@ -1,0 +1,10 @@
+{
+  "name": "ML Learning Platform",
+  "short_name": "ML Platform",
+  "description": "Interactive Machine Learning Web Application - Train AI models with your data",
+  "start_url": "/Machine-Learning/",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary"
+}
