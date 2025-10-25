@@ -630,7 +630,7 @@ function showPredictionResult(message) {
     // Message is constructed from controlled sources (parseFloat, model predictions, string literals)
     resultDiv.innerHTML = `<strong>Result:</strong> ${message}`;
     resultDiv.classList.remove('hidden');
-    resultDiv.classList.add('active');
+    resultDiv.classList.add('block', 'active');
 }
 
 // Reset Application

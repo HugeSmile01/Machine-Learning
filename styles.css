@@ -65,7 +65,6 @@
 
 /* Prediction result active state */
 #predictionResult.active {
-    display: block !important;
     animation: fadeIn 0.5s ease-in;
 }
 
