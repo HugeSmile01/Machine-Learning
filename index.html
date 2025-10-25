@@ -28,7 +28,22 @@
     <!-- Manifest for PWA -->
     <link rel="manifest" href="manifest.json">
     
-    <!-- Styles -->
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#667eea',
+                        secondary: '#764ba2',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Styles (for animations and chart-specific styling) -->
     <link rel="stylesheet" href="styles.css">
     
     <!-- TensorFlow.js for ML capabilities -->
@@ -36,159 +51,163 @@
     <!-- Chart.js for visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
-<body>
-    <header>
-        <nav class="navbar">
-            <div class="container">
-                <h1 class="logo">🧠 ML Learning Platform</h1>
-                <p class="tagline">Train AI Models While You Learn</p>
-            </div>
+<body class="bg-gradient-to-br from-purple-500 to-purple-700 min-h-screen">
+    <header class="bg-white/95 backdrop-blur-md shadow-lg sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <h1 class="text-3xl sm:text-4xl font-bold text-primary mb-2">🧠 ML Learning Platform</h1>
+            <p class="text-gray-600 text-base sm:text-lg">Train AI Models While You Learn</p>
         </nav>
     </header>
 
-    <main class="container">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Introduction Section -->
-        <section class="intro-section">
-            <h2>Welcome to Interactive Machine Learning</h2>
-            <p>Upload your data, train AI models, and learn how machine learning works in real-time. This platform runs entirely in your browser - no server required!</p>
+        <section class="bg-white rounded-xl p-6 sm:p-8 mb-8 shadow-lg animate-fadeIn">
+            <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6">Welcome to Interactive Machine Learning</h2>
+            <p class="text-gray-600 text-base sm:text-lg leading-relaxed">Upload your data, train AI models, and learn how machine learning works in real-time. This platform runs entirely in your browser - no server required!</p>
         </section>
 
         <!-- Model Selection -->
-        <section class="model-selection">
-            <h2>Choose Your ML Model</h2>
-            <div class="model-cards">
-                <div class="model-card" data-model="image">
-                    <div class="card-icon">🖼️</div>
-                    <h3>Image Classification</h3>
-                    <p>Train models to recognize and classify images</p>
-                    <button class="btn-primary" onclick="selectModel('image')">Select</button>
+        <section class="bg-white rounded-xl p-6 sm:p-8 mb-8 shadow-lg animate-fadeIn">
+            <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6">Choose Your ML Model</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                <div class="model-card bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-xl p-8 text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-primary cursor-pointer" data-model="image">
+                    <div class="text-5xl sm:text-6xl mb-4">🖼️</div>
+                    <h3 class="text-xl font-bold text-primary mb-2">Image Classification</h3>
+                    <p class="text-gray-600 mb-6">Train models to recognize and classify images</p>
+                    <button class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg w-full" onclick="selectModel('image')">Select</button>
                 </div>
-                <div class="model-card" data-model="regression">
-                    <div class="card-icon">📈</div>
-                    <h3>Linear Regression</h3>
-                    <p>Predict values based on numerical data</p>
-                    <button class="btn-primary" onclick="selectModel('regression')">Select</button>
+                <div class="model-card bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-xl p-8 text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-primary cursor-pointer" data-model="regression">
+                    <div class="text-5xl sm:text-6xl mb-4">📈</div>
+                    <h3 class="text-xl font-bold text-primary mb-2">Linear Regression</h3>
+                    <p class="text-gray-600 mb-6">Predict values based on numerical data</p>
+                    <button class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg w-full" onclick="selectModel('regression')">Select</button>
                 </div>
-                <div class="model-card" data-model="neural">
-                    <div class="card-icon">🔬</div>
-                    <h3>Neural Network</h3>
-                    <p>Build custom neural networks for classification</p>
-                    <button class="btn-primary" onclick="selectModel('neural')">Select</button>
+                <div class="model-card bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-xl p-8 text-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-primary cursor-pointer" data-model="neural">
+                    <div class="text-5xl sm:text-6xl mb-4">🔬</div>
+                    <h3 class="text-xl font-bold text-primary mb-2">Neural Network</h3>
+                    <p class="text-gray-600 mb-6">Build custom neural networks for classification</p>
+                    <button class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg w-full" onclick="selectModel('neural')">Select</button>
                 </div>
             </div>
         </section>
 
         <!-- Data Upload Section -->
-        <section class="data-section" id="dataSection" style="display: none;">
-            <h2>Upload Your Training Data</h2>
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📁</div>
-                <p>Drag and drop files here or click to browse</p>
-                <input type="file" id="fileInput" multiple accept=".csv,.json,.jpg,.jpeg,.png,.txt">
-                <button class="btn-secondary" onclick="document.getElementById('fileInput').click()">Choose Files</button>
+        <section class="bg-white rounded-xl p-6 sm:p-8 mb-8 shadow-lg animate-fadeIn" id="dataSection" style="display: none;">
+            <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6">Upload Your Training Data</h2>
+            <div class="border-3 border-dashed border-gray-300 rounded-xl p-8 sm:p-12 text-center transition-all duration-300 hover:border-primary hover:bg-indigo-50 cursor-pointer bg-gray-50" id="uploadArea">
+                <div class="text-5xl sm:text-6xl mb-4">📁</div>
+                <p class="text-gray-600 mb-4">Drag and drop files here or click to browse</p>
+                <input type="file" id="fileInput" multiple accept=".csv,.json,.jpg,.jpeg,.png,.txt" class="hidden">
+                <button class="bg-white text-primary border-2 border-primary px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:bg-primary hover:text-white" onclick="document.getElementById('fileInput').click()">Choose Files</button>
             </div>
-            <div class="data-preview" id="dataPreview"></div>
+            <div class="mt-8 p-6 bg-gray-50 rounded-lg max-h-96 overflow-y-auto" id="dataPreview"></div>
             
             <!-- Sample Data Option -->
-            <div class="sample-data">
-                <h3>Or Try Sample Data</h3>
-                <button class="btn-secondary" onclick="loadSampleData()">Load Sample Dataset</button>
+            <div class="mt-8 text-center p-6 bg-gray-50 rounded-lg">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Or Try Sample Data</h3>
+                <button class="bg-white text-primary border-2 border-primary px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:bg-primary hover:text-white" onclick="loadSampleData()">Load Sample Dataset</button>
             </div>
         </section>
 
         <!-- Training Configuration -->
-        <section class="training-section" id="trainingSection" style="display: none;">
-            <h2>Configure Training Parameters</h2>
-            <div class="config-grid">
-                <div class="config-item">
-                    <label for="epochs">Training Epochs:</label>
-                    <input type="number" id="epochs" value="50" min="1" max="500">
-                    <span class="info-tooltip" title="Number of times to iterate through the dataset">ℹ️</span>
+        <section class="bg-white rounded-xl p-6 sm:p-8 mb-8 shadow-lg animate-fadeIn" id="trainingSection" style="display: none;">
+            <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6">Configure Training Parameters</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                <div class="flex flex-col gap-2">
+                    <label for="epochs" class="font-semibold text-gray-800 flex items-center gap-2">
+                        Training Epochs:
+                        <span class="cursor-help text-primary text-xl" title="Number of times to iterate through the dataset">ℹ️</span>
+                    </label>
+                    <input type="number" id="epochs" value="50" min="1" max="500" class="px-4 py-3 border-2 border-gray-300 rounded-lg text-base transition-colors focus:outline-none focus:border-primary">
                 </div>
-                <div class="config-item">
-                    <label for="learningRate">Learning Rate:</label>
-                    <input type="number" id="learningRate" value="0.01" min="0.0001" max="1" step="0.001">
-                    <span class="info-tooltip" title="Controls how quickly the model learns">ℹ️</span>
+                <div class="flex flex-col gap-2">
+                    <label for="learningRate" class="font-semibold text-gray-800 flex items-center gap-2">
+                        Learning Rate:
+                        <span class="cursor-help text-primary text-xl" title="Controls how quickly the model learns">ℹ️</span>
+                    </label>
+                    <input type="number" id="learningRate" value="0.01" min="0.0001" max="1" step="0.001" class="px-4 py-3 border-2 border-gray-300 rounded-lg text-base transition-colors focus:outline-none focus:border-primary">
                 </div>
-                <div class="config-item">
-                    <label for="batchSize">Batch Size:</label>
-                    <input type="number" id="batchSize" value="32" min="1" max="128">
-                    <span class="info-tooltip" title="Number of samples processed before updating">ℹ️</span>
+                <div class="flex flex-col gap-2">
+                    <label for="batchSize" class="font-semibold text-gray-800 flex items-center gap-2">
+                        Batch Size:
+                        <span class="cursor-help text-primary text-xl" title="Number of samples processed before updating">ℹ️</span>
+                    </label>
+                    <input type="number" id="batchSize" value="32" min="1" max="128" class="px-4 py-3 border-2 border-gray-300 rounded-lg text-base transition-colors focus:outline-none focus:border-primary">
                 </div>
             </div>
-            <button class="btn-primary btn-large" id="trainButton" onclick="startTraining()">🚀 Start Training</button>
+            <button class="bg-gradient-to-r from-primary to-secondary text-white px-12 py-4 rounded-lg text-xl font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg w-full md:w-auto block mx-auto mt-8" id="trainButton" onclick="startTraining()">🚀 Start Training</button>
         </section>
 
         <!-- Training Progress -->
-        <section class="progress-section" id="progressSection" style="display: none;">
-            <h2>Training Progress</h2>
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressBar"></div>
+        <section class="bg-white rounded-xl p-6 sm:p-8 mb-8 shadow-lg animate-fadeIn" id="progressSection" style="display: none;">
+            <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6">Training Progress</h2>
+            <div class="mb-8">
+                <div class="w-full h-8 bg-gray-100 rounded-full overflow-hidden mb-4">
+                    <div class="progress-fill h-full bg-gradient-to-r from-primary to-green-500 flex items-center justify-center text-white font-semibold transition-all duration-300" id="progressBar" style="width: 0%;"></div>
                 </div>
-                <div class="progress-text" id="progressText">Initializing...</div>
+                <div class="text-center text-gray-600 font-medium" id="progressText">Initializing...</div>
             </div>
             
             <!-- Learning Insights -->
-            <div class="insights-panel">
-                <h3>📚 What's Happening?</h3>
-                <div id="learningInsights" class="insights-content">
+            <div class="bg-gradient-to-br from-indigo-100 to-gray-50 p-6 rounded-lg mb-8 border-l-4 border-primary">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">📚 What's Happening?</h3>
+                <div id="learningInsights" class="text-gray-700 leading-relaxed">
                     <p>The model is being initialized...</p>
                 </div>
             </div>
 
             <!-- Training Metrics -->
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <h4>Loss</h4>
-                    <div class="metric-value" id="lossValue">-</div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                <div class="bg-gradient-to-br from-gray-50 to-white p-6 rounded-lg text-center border-2 border-gray-200">
+                    <h4 class="text-gray-500 text-sm uppercase tracking-wider mb-2">Loss</h4>
+                    <div class="text-3xl font-bold text-primary" id="lossValue">-</div>
                 </div>
-                <div class="metric-card">
-                    <h4>Accuracy</h4>
-                    <div class="metric-value" id="accuracyValue">-</div>
+                <div class="bg-gradient-to-br from-gray-50 to-white p-6 rounded-lg text-center border-2 border-gray-200">
+                    <h4 class="text-gray-500 text-sm uppercase tracking-wider mb-2">Accuracy</h4>
+                    <div class="text-3xl font-bold text-primary" id="accuracyValue">-</div>
                 </div>
-                <div class="metric-card">
-                    <h4>Epoch</h4>
-                    <div class="metric-value" id="epochValue">0</div>
+                <div class="bg-gradient-to-br from-gray-50 to-white p-6 rounded-lg text-center border-2 border-gray-200">
+                    <h4 class="text-gray-500 text-sm uppercase tracking-wider mb-2">Epoch</h4>
+                    <div class="text-3xl font-bold text-primary" id="epochValue">0</div>
                 </div>
             </div>
 
             <!-- Training Chart -->
-            <div class="chart-container">
+            <div class="bg-white p-6 rounded-lg mt-8">
                 <canvas id="trainingChart"></canvas>
             </div>
         </section>
 
         <!-- Results Section -->
-        <section class="results-section" id="resultsSection" style="display: none;">
-            <h2>🎉 Training Complete!</h2>
-            <div class="results-container">
-                <div class="result-summary" id="resultSummary"></div>
-                <div class="test-model">
-                    <h3>Test Your Model</h3>
-                    <div class="test-input-area" id="testInputArea"></div>
-                    <button class="btn-primary" onclick="testModel()">Run Prediction</button>
-                    <div class="prediction-result" id="predictionResult"></div>
+        <section class="bg-white rounded-xl p-6 sm:p-8 mb-8 shadow-lg animate-fadeIn" id="resultsSection" style="display: none;">
+            <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6">🎉 Training Complete!</h2>
+            <div class="space-y-8">
+                <div class="bg-gradient-to-r from-green-200 to-green-300 p-8 rounded-lg text-gray-800 text-lg" id="resultSummary"></div>
+                <div class="bg-gray-50 p-8 rounded-lg">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6">Test Your Model</h3>
+                    <div class="my-6 p-6 bg-white rounded-lg border-2 border-gray-200 min-h-[100px]" id="testInputArea"></div>
+                    <button class="bg-gradient-to-r from-primary to-secondary text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg w-full md:w-auto" onclick="testModel()">Run Prediction</button>
+                    <div class="mt-6 p-6 bg-white rounded-lg border-2 border-green-500 text-lg hidden" id="predictionResult"></div>
                 </div>
             </div>
-            <button class="btn-secondary" onclick="resetApp()">Train New Model</button>
+            <button class="bg-white text-primary border-2 border-primary px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:bg-primary hover:text-white mt-8" onclick="resetApp()">Train New Model</button>
         </section>
 
         <!-- Educational Resources -->
-        <section class="resources-section">
-            <h2>📖 Learning Resources</h2>
-            <div class="resource-grid">
-                <div class="resource-card">
-                    <h3>What is Machine Learning?</h3>
-                    <p>Machine learning enables computers to learn from data without being explicitly programmed. The model finds patterns and makes predictions based on examples.</p>
+        <section class="bg-white rounded-xl p-6 sm:p-8 mb-8 shadow-lg animate-fadeIn">
+            <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6">📖 Learning Resources</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-gradient-to-br from-gray-50 to-white p-6 rounded-lg border-l-4 border-primary">
+                    <h3 class="text-xl font-bold text-primary mb-4">What is Machine Learning?</h3>
+                    <p class="text-gray-600 leading-relaxed">Machine learning enables computers to learn from data without being explicitly programmed. The model finds patterns and makes predictions based on examples.</p>
                 </div>
-                <div class="resource-card">
-                    <h3>How Training Works</h3>
-                    <p>During training, the model adjusts its internal parameters to minimize errors. Each epoch processes the entire dataset, gradually improving accuracy.</p>
+                <div class="bg-gradient-to-br from-gray-50 to-white p-6 rounded-lg border-l-4 border-primary">
+                    <h3 class="text-xl font-bold text-primary mb-4">How Training Works</h3>
+                    <p class="text-gray-600 leading-relaxed">During training, the model adjusts its internal parameters to minimize errors. Each epoch processes the entire dataset, gradually improving accuracy.</p>
                 </div>
-                <div class="resource-card">
-                    <h3>Understanding Metrics</h3>
-                    <p><strong>Loss:</strong> Measures prediction error (lower is better)<br>
+                <div class="bg-gradient-to-br from-gray-50 to-white p-6 rounded-lg border-l-4 border-primary">
+                    <h3 class="text-xl font-bold text-primary mb-4">Understanding Metrics</h3>
+                    <p class="text-gray-600 leading-relaxed"><strong>Loss:</strong> Measures prediction error (lower is better)<br>
                        <strong>Accuracy:</strong> Percentage of correct predictions<br>
                        <strong>Learning Rate:</strong> Speed of learning</p>
                 </div>
@@ -196,10 +215,10 @@
         </section>
     </main>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2025 ML Learning Platform | Built with TensorFlow.js | 
-               <a href="https://github.com/HugeSmile01/Machine-Learning" target="_blank">GitHub</a>
+    <footer class="bg-white/95 py-8 text-center mt-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p class="text-gray-600">&copy; 2025 ML Learning Platform | Built with TensorFlow.js | 
+               <a href="https://github.com/HugeSmile01/Machine-Learning" target="_blank" class="text-primary font-semibold hover:underline">GitHub</a>
             </p>
         </div>
     </footer>

@@ -629,7 +629,8 @@ function showPredictionResult(message) {
     const resultDiv = document.getElementById('predictionResult');
     // Message is constructed from controlled sources (parseFloat, model predictions, string literals)
     resultDiv.innerHTML = `<strong>Result:</strong> ${message}`;
-    resultDiv.classList.add('active');
+    resultDiv.classList.remove('hidden');
+    resultDiv.classList.add('block', 'active');
 }
 
 // Reset Application
