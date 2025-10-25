@@ -88,7 +88,7 @@ function handleFiles(files) {
             <h3>✅ Files Uploaded Successfully</h3>
             <p><strong>${files.length}</strong> file(s) ready for training</p>
             <ul>
-                ${Array.from(files).map(file => `<li>📄 ${file.name} (${formatFileSize(file.size)})</li>`).join('')}
+                ${Array.from(files).map(file => `<li>📄 ${escapeHtml(file.name)} (${formatFileSize(file.size)})</li>`).join('')}
             </ul>
         `;
         
@@ -627,6 +627,7 @@ async function testModel() {
 // Show Prediction Result
 function showPredictionResult(message) {
     const resultDiv = document.getElementById('predictionResult');
+    // Message is constructed from controlled sources (parseFloat, model predictions, string literals)
     resultDiv.innerHTML = `<strong>Result:</strong> ${message}`;
     resultDiv.classList.add('active');
 }
@@ -679,6 +680,12 @@ function formatFileSize(bytes) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Performance monitoring
