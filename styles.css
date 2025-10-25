@@ -79,6 +79,39 @@
     outline-offset: 2px;
 }
 
+/* Modal styles */
+.modal-overlay {
+    backdrop-filter: blur(4px);
+}
+
+/* Code block styling */
+pre code {
+    display: block;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #764ba2;
+}
+
 /* Print styles */
 @media print {
     body {
