@@ -172,16 +172,38 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Project Link: [https://github.com/HugeSmile01/Machine-Learning](https://github.com/HugeSmile01/Machine-Learning)
 
-## 🎯 Future Enhancements
+## 🎯 Features & Capabilities
 
-- [ ] More ML model types (CNN, RNN, etc.)
-- [ ] Model export/import functionality
-- [ ] Advanced data preprocessing tools
-- [ ] More visualization options
-- [ ] Multi-class classification support
-- [ ] Dataset management system
-- [ ] Model performance comparison
+### ✅ Implemented Features
+
+- [x] **Model Export/Import**: Download and upload trained models
+- [x] **Model Management**: Save models to browser storage, load and manage multiple models
+- [x] **Custom Architecture Builder**: Visual layer-by-layer neural network designer
+- [x] **Built-in Datasets**: Iris, XOR, Spiral datasets for immediate experimentation
+- [x] **Code Generation**: Export Python, JavaScript, and deployment code
+- [x] **Model Details Viewer**: Comprehensive architecture and performance metrics
+- [x] **Advanced Data Preprocessing**: Normalization, standardization, one-hot encoding
+- [x] **Educational Features**: Layer explanations, hyperparameter tips, training insights
+- [x] **Multiple ML Models**: Image classification, Linear Regression, Neural Networks
+- [x] **Real-time Visualization**: Training charts, metrics, and progress tracking
+
+### 📚 Documentation
+
+- [**FEATURES.md**](FEATURES.md) - Complete feature guide with examples
+- [**USING_MODELS.md**](USING_MODELS.md) - How to use trained models in your projects
+- [**QUICKSTART.md**](QUICKSTART.md) - Step-by-step beginner guide
+- [**DEPLOYMENT.md**](DEPLOYMENT.md) - GitHub Pages deployment guide
+
+### 🔮 Future Enhancements
+
+- [ ] Pre-trained models for transfer learning
+- [ ] Side-by-side model comparison
+- [ ] More built-in datasets (MNIST, Fashion-MNIST)
+- [ ] RNN/LSTM for time series
+- [ ] Advanced visualizations (t-SNE, PCA)
+- [ ] Model ensemble capabilities
+- [ ] Export to ONNX, CoreML formats
 
 ---
 
-**Made with ❤️ for learners and educators** 
+**Made with ❤️ for learners and educators**  

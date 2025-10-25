@@ -1173,7 +1173,6 @@ function showModelDetails() {
 document.addEventListener('DOMContentLoaded', async () => {
     await refreshSavedModels();
 });
-}
 
 // Performance monitoring
 console.log('TensorFlow.js backend:', tf.getBackend());
