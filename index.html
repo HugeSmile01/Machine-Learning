@@ -50,6 +50,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
     <!-- Chart.js for visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- ML Utilities -->
+    <script src="ml-utils.js"></script>
 </head>
 <body class="bg-gradient-to-br from-purple-500 to-purple-700 min-h-screen">
     <header class="bg-white/95 backdrop-blur-md shadow-lg sticky top-0 z-50">
@@ -190,8 +192,142 @@
                     <div class="mt-6 p-6 bg-white rounded-lg border-2 border-green-500 text-lg hidden" id="predictionResult"></div>
                 </div>
             </div>
-            <button class="bg-white text-primary border-2 border-primary px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:bg-primary hover:text-white mt-8" onclick="resetApp()">Train New Model</button>
+            <div class="flex flex-wrap gap-4 mt-8">
+                <button class="bg-white text-primary border-2 border-primary px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:bg-primary hover:text-white" onclick="resetApp()">Train New Model</button>
+                <button class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" onclick="downloadModel()">📥 Download Model</button>
+                <button class="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" onclick="saveModel()">💾 Save to Browser</button>
+                <button class="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" onclick="showCodeGeneration()">📝 Generate Code</button>
+                <button class="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" onclick="showModelDetails()">🔍 Model Details</button>
+            </div>
         </section>
+
+        <!-- Model Management Section -->
+        <section class="bg-white rounded-xl p-6 sm:p-8 mb-8 shadow-lg animate-fadeIn" id="modelManagementSection">
+            <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6">💾 Model Management</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Saved Models -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Saved Models</h3>
+                    <div id="savedModelsList" class="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                        <p class="text-gray-500 italic">No saved models yet</p>
+                    </div>
+                    <button class="bg-primary text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 hover:bg-secondary w-full" onclick="refreshSavedModels()">🔄 Refresh List</button>
+                </div>
+                
+                <!-- Import Model -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Import Model</h3>
+                    <p class="text-gray-600 mb-4">Upload previously exported model files</p>
+                    <div class="space-y-3">
+                        <input type="file" id="modelJsonInput" accept=".json" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:cursor-pointer hover:file:bg-secondary">
+                        <input type="file" id="modelWeightsInput" accept=".bin" class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:cursor-pointer hover:file:bg-secondary">
+                        <button class="bg-green-500 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 hover:bg-green-600 w-full" onclick="importModelFiles()">📤 Import Model</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Built-in Datasets -->
+            <div class="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-lg border-2 border-primary">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">🗂️ Built-in Datasets</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded-lg border-2 border-gray-200 hover:border-primary transition-all cursor-pointer" onclick="loadBuiltInDataset('iris')">
+                        <h4 class="font-bold text-primary mb-2">🌸 Iris Flowers</h4>
+                        <p class="text-sm text-gray-600">3 classes, 4 features, 150 samples</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border-2 border-gray-200 hover:border-primary transition-all cursor-pointer" onclick="loadBuiltInDataset('xor')">
+                        <h4 class="font-bold text-primary mb-2">⚡ XOR Problem</h4>
+                        <p class="text-sm text-gray-600">Non-linear classification, 400 samples</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border-2 border-gray-200 hover:border-primary transition-all cursor-pointer" onclick="loadBuiltInDataset('spiral')">
+                        <h4 class="font-bold text-primary mb-2">🌀 Spiral Data</h4>
+                        <p class="text-sm text-gray-600">Challenging pattern, 300 samples</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Model Architecture Builder -->
+        <section class="bg-white rounded-xl p-6 sm:p-8 mb-8 shadow-lg animate-fadeIn" id="architectureSection">
+            <h2 class="text-2xl sm:text-3xl font-bold text-primary mb-6">🏗️ Custom Architecture Builder</h2>
+            
+            <div class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-lg border-2 border-purple-300 mb-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Build Your Neural Network</h3>
+                <p class="text-gray-600 mb-4">Add layers to create a custom architecture. Each layer processes data differently.</p>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <button class="bg-purple-500 text-white px-4 py-3 rounded-lg font-semibold transition-all hover:bg-purple-600" onclick="addLayerToArchitecture('dense')">➕ Dense</button>
+                    <button class="bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold transition-all hover:bg-blue-600" onclick="addLayerToArchitecture('conv2d')">➕ Conv2D</button>
+                    <button class="bg-green-500 text-white px-4 py-3 rounded-lg font-semibold transition-all hover:bg-green-600" onclick="addLayerToArchitecture('dropout')">➕ Dropout</button>
+                    <button class="bg-orange-500 text-white px-4 py-3 rounded-lg font-semibold transition-all hover:bg-orange-600" onclick="addLayerToArchitecture('flatten')">➕ Flatten</button>
+                </div>
+                
+                <div id="architectureDisplay" class="bg-white p-4 rounded-lg border-2 border-gray-300 min-h-[100px] mb-4">
+                    <p class="text-gray-400 italic text-center">No layers added yet. Click buttons above to build your model.</p>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button class="bg-primary text-white px-6 py-2 rounded-lg font-semibold transition-all hover:bg-secondary" onclick="buildCustomModel()">🚀 Build & Train</button>
+                    <button class="bg-red-500 text-white px-6 py-2 rounded-lg font-semibold transition-all hover:bg-red-600" onclick="clearArchitecture()">🗑️ Clear</button>
+                </div>
+            </div>
+            
+            <!-- Layer Explanations -->
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">📚 Layer Types Explained</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="bg-white p-3 rounded-lg">
+                        <strong class="text-purple-600">Dense Layer:</strong> Fully connected neurons. Good for learning complex relationships. Each neuron connects to all neurons in the next layer.
+                    </div>
+                    <div class="bg-white p-3 rounded-lg">
+                        <strong class="text-blue-600">Conv2D Layer:</strong> Detects patterns in images using filters. Learns to recognize edges, shapes, and textures.
+                    </div>
+                    <div class="bg-white p-3 rounded-lg">
+                        <strong class="text-green-600">Dropout Layer:</strong> Randomly deactivates neurons during training. Prevents overfitting and improves generalization.
+                    </div>
+                    <div class="bg-white p-3 rounded-lg">
+                        <strong class="text-orange-600">Flatten Layer:</strong> Converts 2D/3D data to 1D. Required before dense layers when working with images.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Code Generation Modal -->
+        <div id="codeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeModal('codeModal')">
+            <div class="bg-white rounded-xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-primary">📝 Generated Code</h2>
+                    <button class="text-gray-500 hover:text-gray-700 text-3xl" onclick="closeModal('codeModal')">&times;</button>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex gap-3 mb-4">
+                        <button class="px-6 py-2 rounded-lg font-semibold transition-all" id="pythonTab" onclick="showCodeTab('python')">🐍 Python</button>
+                        <button class="px-6 py-2 rounded-lg font-semibold transition-all" id="javascriptTab" onclick="showCodeTab('javascript')">📜 JavaScript</button>
+                        <button class="px-6 py-2 rounded-lg font-semibold transition-all" id="deployTab" onclick="showCodeTab('deploy')">🚀 Deploy</button>
+                    </div>
+                </div>
+                
+                <div id="codeContent">
+                    <pre id="generatedCode" class="bg-gray-900 text-green-400 p-6 rounded-lg overflow-x-auto"><code></code></pre>
+                    <button class="mt-4 bg-primary text-white px-6 py-2 rounded-lg font-semibold transition-all hover:bg-secondary" onclick="copyCode()">📋 Copy Code</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Details Modal -->
+        <div id="detailsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeModal('detailsModal')">
+            <div class="bg-white rounded-xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-primary">🔍 Model Details</h2>
+                    <button class="text-gray-500 hover:text-gray-700 text-3xl" onclick="closeModal('detailsModal')">&times;</button>
+                </div>
+                
+                <div id="modelDetailsContent" class="space-y-6">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+        </div>
 
         <!-- Educational Resources -->
         <section class="bg-white rounded-xl p-6 sm:p-8 mb-8 shadow-lg animate-fadeIn">

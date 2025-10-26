@@ -7,9 +7,15 @@ const appState = {
     trainingHistory: {
         loss: [],
         accuracy: [],
-        epochs: []
+        epochs: [],
+        valLoss: [],
+        valAccuracy: []
     },
-    chart: null
+    chart: null,
+    modelArchitecture: [],
+    savedModels: [],
+    currentDataset: null,
+    preprocessingSteps: []
 };
 
 // Educational insights for different training phases
@@ -688,6 +694,485 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ==================== NEW COMPREHENSIVE FEATURES ====================
+
+// Model Management Functions
+
+async function saveModel() {
+    if (!appState.model) {
+        alert('No trained model to save!');
+        return;
+    }
+    
+    const modelName = prompt('Enter a name for your model:', `model_${Date.now()}`);
+    if (!modelName) return;
+    
+    const metadata = {
+        modelType: appState.selectedModel,
+        trainingDate: new Date().toISOString(),
+        finalLoss: appState.trainingHistory.loss[appState.trainingHistory.loss.length - 1],
+        finalAccuracy: appState.trainingHistory.accuracy[appState.trainingHistory.accuracy.length - 1],
+        epochs: appState.trainingHistory.epochs.length,
+        architecture: appState.model.layers.map(l => ({
+            type: l.getClassName(),
+            config: l.getConfig()
+        }))
+    };
+    
+    const result = await saveModelToStorage(modelName, appState.model, metadata);
+    
+    if (result.success) {
+        alert(`Model "${modelName}" saved successfully!`);
+        await refreshSavedModels();
+    } else {
+        alert(`Error saving model: ${result.error}`);
+    }
+}
+
+async function downloadModel() {
+    if (!appState.model) {
+        alert('No trained model to download!');
+        return;
+    }
+    
+    const modelName = prompt('Enter a name for your model:', 'my_model');
+    if (!modelName) return;
+    
+    try {
+        await exportModel(appState.model, modelName);
+        alert(`Model "${modelName}" downloaded successfully! Check your Downloads folder.`);
+    } catch (error) {
+        console.error('Download error:', error);
+        alert(`Error downloading model: ${error.message}`);
+    }
+}
+
+async function refreshSavedModels() {
+    const modelsList = document.getElementById('savedModelsList');
+    const models = await listSavedModels();
+    
+    if (models.length === 0) {
+        modelsList.innerHTML = '<p class="text-gray-500 italic">No saved models yet</p>';
+        appState.savedModels = [];
+        return;
+    }
+    
+    appState.savedModels = models;
+    
+    modelsList.innerHTML = models.map((model, index) => `
+        <div class="bg-white p-4 rounded-lg border-2 border-gray-200 hover:border-primary transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex-1">
+                    <h4 class="font-bold text-primary">${escapeHtml(model.name)}</h4>
+                    <p class="text-xs text-gray-500">${new Date(model.timestamp).toLocaleString()}</p>
+                </div>
+                <div class="flex gap-2">
+                    <button class="text-blue-500 hover:text-blue-700 font-semibold text-sm" onclick="loadSavedModel('${escapeHtml(model.name)}')">Load</button>
+                    <button class="text-red-500 hover:text-red-700 font-semibold text-sm" onclick="deleteSavedModel('${escapeHtml(model.name)}')">Delete</button>
+                </div>
+            </div>
+            ${model.metadata ? `
+                <p class="text-xs text-gray-600">
+                    Type: ${model.metadata.modelType || 'N/A'} | 
+                    Accuracy: ${model.metadata.finalAccuracy ? (model.metadata.finalAccuracy * 100).toFixed(2) + '%' : 'N/A'}
+                </p>
+            ` : ''}
+        </div>
+    `).join('');
+}
+
+async function loadSavedModel(modelName) {
+    const result = await loadModelFromStorage(modelName);
+    
+    if (result.success) {
+        appState.model = result.model;
+        appState.selectedModel = result.modelInfo.metadata?.modelType || 'custom';
+        alert(`Model "${modelName}" loaded successfully! You can now use it for predictions.`);
+        
+        // Show results section for testing
+        document.getElementById('resultsSection').style.display = 'block';
+        document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        
+        const summaryHTML = `
+            <h3>Loaded Model Summary</h3>
+            <p><strong>Model Name:</strong> ${escapeHtml(modelName)}</p>
+            <p><strong>Model Type:</strong> ${result.modelInfo.metadata?.modelType || 'Custom'}</p>
+            <p><strong>Saved:</strong> ${new Date(result.modelInfo.timestamp).toLocaleString()}</p>
+            <p><strong>Status:</strong> ✅ Ready for predictions!</p>
+        `;
+        
+        document.getElementById('resultSummary').innerHTML = summaryHTML;
+        setupTestInput();
+    } else {
+        alert(`Error loading model: ${result.error}`);
+    }
+}
+
+async function deleteSavedModel(modelName) {
+    if (!confirm(`Are you sure you want to delete model "${modelName}"?`)) {
+        return;
+    }
+    
+    const result = await deleteModelFromStorage(modelName);
+    
+    if (result.success) {
+        alert(`Model "${modelName}" deleted successfully!`);
+        await refreshSavedModels();
+    } else {
+        alert(`Error deleting model: ${result.error}`);
+    }
+}
+
+async function importModelFiles() {
+    const jsonInput = document.getElementById('modelJsonInput');
+    const weightsInput = document.getElementById('modelWeightsInput');
+    
+    if (!jsonInput.files.length || !weightsInput.files.length) {
+        alert('Please select both model.json and weights file!');
+        return;
+    }
+    
+    try {
+        const result = await importModel(jsonInput.files[0], weightsInput.files[0]);
+        
+        if (result.success) {
+            appState.model = result.model;
+            alert('Model imported successfully! You can now use it for predictions.');
+            
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+            setupTestInput();
+        } else {
+            alert(`Error importing model: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Import error:', error);
+        alert(`Error importing model: ${error.message}`);
+    }
+}
+
+// Built-in Datasets
+
+function loadBuiltInDataset(datasetName) {
+    if (!builtInDatasets[datasetName]) {
+        alert('Dataset not found!');
+        return;
+    }
+    
+    const dataset = builtInDatasets[datasetName];
+    const data = dataset.generate();
+    
+    appState.trainingData = {
+        builtin: true,
+        data: data,
+        processed: true,
+        dataset: datasetName
+    };
+    
+    // Auto-select appropriate model type
+    if (dataset.classes === 2) {
+        appState.selectedModel = 'neural';
+    } else if (dataset.classes > 2) {
+        appState.selectedModel = 'neural';
+    }
+    
+    const dataPreview = document.getElementById('dataPreview');
+    dataPreview.classList.add('active');
+    dataPreview.innerHTML = `
+        <h3>✅ ${dataset.name} Loaded</h3>
+        <p>${dataset.description}</p>
+        <p><strong>Features:</strong> ${dataset.features} | <strong>Classes:</strong> ${dataset.classes} | <strong>Samples:</strong> ${dataset.samples}</p>
+        <div class="mt-4 text-sm">
+            <strong>Sample data:</strong><br>
+            ${data.slice(0, 3).map(d => 
+                `Features: [${d.features.map(f => f.toFixed(2)).join(', ')}] → Label: ${d.label}`
+            ).join('<br>')}
+            <br>... and ${data.length - 3} more samples
+        </div>
+    `;
+    
+    // Show data and training sections
+    document.getElementById('dataSection').style.display = 'block';
+    document.getElementById('trainingSection').style.display = 'block';
+    document.getElementById('trainingSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Custom Architecture Builder
+
+function addLayerToArchitecture(layerType) {
+    let config = { type: layerType };
+    
+    switch (layerType) {
+        case 'dense':
+            const units = prompt('Enter number of units (neurons):', '64');
+            if (!units) return;
+            config.units = parseInt(units);
+            config.activation = prompt('Enter activation function (relu, sigmoid, tanh, softmax):', 'relu');
+            break;
+            
+        case 'conv2d':
+            const filters = prompt('Enter number of filters:', '32');
+            if (!filters) return;
+            config.filters = parseInt(filters);
+            config.kernelSize = [3, 3];
+            config.activation = 'relu';
+            break;
+            
+        case 'dropout':
+            const rate = prompt('Enter dropout rate (0.0 to 1.0):', '0.2');
+            if (!rate) return;
+            config.rate = parseFloat(rate);
+            break;
+            
+        case 'flatten':
+            // No additional config needed
+            break;
+    }
+    
+    if (!appState.modelArchitecture) {
+        appState.modelArchitecture = [];
+    }
+    
+    appState.modelArchitecture.push(config);
+    displayArchitecture();
+}
+
+function displayArchitecture() {
+    const display = document.getElementById('architectureDisplay');
+    
+    if (appState.modelArchitecture.length === 0) {
+        display.innerHTML = '<p class="text-gray-400 italic text-center">No layers added yet. Click buttons above to build your model.</p>';
+        return;
+    }
+    
+    display.innerHTML = appState.modelArchitecture.map((layer, index) => {
+        let layerInfo = `<strong>${layer.type}</strong>`;
+        
+        if (layer.type === 'dense') {
+            layerInfo += ` (${layer.units} units, ${layer.activation})`;
+        } else if (layer.type === 'conv2d') {
+            layerInfo += ` (${layer.filters} filters, ${layer.activation})`;
+        } else if (layer.type === 'dropout') {
+            layerInfo += ` (rate: ${layer.rate})`;
+        }
+        
+        return `
+            <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg mb-2">
+                <span>Layer ${index + 1}: ${layerInfo}</span>
+                <button class="text-red-500 hover:text-red-700 font-bold" onclick="removeLayer(${index})">✕</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function removeLayer(index) {
+    appState.modelArchitecture.splice(index, 1);
+    displayArchitecture();
+}
+
+function clearArchitecture() {
+    appState.modelArchitecture = [];
+    displayArchitecture();
+}
+
+async function buildCustomModel() {
+    if (!appState.modelArchitecture || appState.modelArchitecture.length === 0) {
+        alert('Please add at least one layer to your architecture!');
+        return;
+    }
+    
+    if (!appState.trainingData) {
+        alert('Please load or upload training data first!');
+        return;
+    }
+    
+    try {
+        // Add input shape to first layer
+        if (!appState.modelArchitecture[0].inputShape) {
+            const inputDim = appState.trainingData.data[0].features.length;
+            appState.modelArchitecture[0].inputShape = [inputDim];
+        }
+        
+        const model = createCustomModel(appState.modelArchitecture);
+        appState.model = model;
+        appState.selectedModel = 'custom';
+        
+        alert('Custom model created successfully! Configure training parameters and start training.');
+        
+        // Show training section
+        document.getElementById('trainingSection').style.display = 'block';
+        document.getElementById('trainingSection').scrollIntoView({ behavior: 'smooth' });
+    } catch (error) {
+        console.error('Error building model:', error);
+        alert(`Error building model: ${error.message}`);
+    }
+}
+
+// Code Generation
+
+function showCodeGeneration() {
+    if (!appState.model) {
+        alert('No trained model available! Train a model first.');
+        return;
+    }
+    
+    const modal = document.getElementById('codeModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    // Show Python code by default
+    showCodeTab('python');
+}
+
+function showCodeTab(language) {
+    const tabs = ['pythonTab', 'javascriptTab', 'deployTab'];
+    tabs.forEach(tab => {
+        const element = document.getElementById(tab);
+        element.classList.remove('bg-primary', 'text-white');
+        element.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    
+    const activeTab = document.getElementById(`${language}Tab`);
+    activeTab.classList.remove('bg-gray-200', 'text-gray-700');
+    activeTab.classList.add('bg-primary', 'text-white');
+    
+    const modelConfig = {
+        layers: appState.model.layers.map(layer => ({
+            type: layer.getClassName().toLowerCase().replace('layers.', ''),
+            ...layer.getConfig()
+        }))
+    };
+    
+    const trainingConfig = {
+        epochs: parseInt(document.getElementById('epochs').value),
+        batchSize: parseInt(document.getElementById('batchSize').value),
+        optimizer: 'adam',
+        loss: appState.selectedModel === 'regression' ? 'mean_squared_error' : 'binary_crossentropy'
+    };
+    
+    let code;
+    
+    switch (language) {
+        case 'python':
+            code = generatePythonCode(modelConfig, trainingConfig);
+            break;
+        case 'javascript':
+            code = generateJavaScriptCode(modelConfig, trainingConfig);
+            break;
+        case 'deploy':
+            code = generateDeploymentCode('my_model');
+            break;
+    }
+    
+    document.getElementById('generatedCode').querySelector('code').textContent = code;
+}
+
+function copyCode() {
+    const code = document.getElementById('generatedCode').querySelector('code').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        alert('Code copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy code. Please copy manually.');
+    });
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.remove('flex');
+    modal.classList.add('hidden');
+}
+
+// Model Details
+
+function showModelDetails() {
+    if (!appState.model) {
+        alert('No trained model available!');
+        return;
+    }
+    
+    const modal = document.getElementById('detailsModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    const summary = getModelSummary(appState.model);
+    const totalParams = appState.model.countParams();
+    
+    const detailsHTML = `
+        <div class="bg-gray-50 p-6 rounded-lg">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Model Architecture</h3>
+            <pre class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">${summary}</pre>
+        </div>
+        
+        <div class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-lg border-2 border-blue-200">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Model Statistics</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">Total Parameters</p>
+                    <p class="text-2xl font-bold text-primary">${totalParams.toLocaleString()}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Number of Layers</p>
+                    <p class="text-2xl font-bold text-primary">${appState.model.layers.length}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Input Shape</p>
+                    <p class="text-lg font-bold text-gray-700">${JSON.stringify(appState.model.inputs[0].shape)}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Output Shape</p>
+                    <p class="text-lg font-bold text-gray-700">${JSON.stringify(appState.model.outputs[0].shape)}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-br from-green-50 to-white p-6 rounded-lg border-2 border-green-200">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Training Performance</h3>
+            ${appState.trainingHistory.loss.length > 0 ? `
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Final Loss</p>
+                        <p class="text-2xl font-bold text-red-600">${appState.trainingHistory.loss[appState.trainingHistory.loss.length - 1].toFixed(4)}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Final Accuracy</p>
+                        <p class="text-2xl font-bold text-green-600">${(appState.trainingHistory.accuracy[appState.trainingHistory.accuracy.length - 1] * 100).toFixed(2)}%</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Total Epochs</p>
+                        <p class="text-lg font-bold text-gray-700">${appState.trainingHistory.epochs.length}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Model Type</p>
+                        <p class="text-lg font-bold text-gray-700">${appState.selectedModel}</p>
+                    </div>
+                </div>
+            ` : '<p class="text-gray-500 italic">No training history available</p>'}
+        </div>
+        
+        <div class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-lg border-2 border-purple-200">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Layer Details</h3>
+            <div class="space-y-3">
+                ${appState.model.layers.map((layer, index) => `
+                    <div class="bg-white p-4 rounded-lg border-l-4 border-purple-500">
+                        <p class="font-bold text-purple-600">Layer ${index + 1}: ${layer.name} (${layer.getClassName()})</p>
+                        <p class="text-sm text-gray-600 mt-2">${getLayerExplanation(layer.getClassName().toLowerCase().replace('layers.', ''))}</p>
+                        <p class="text-xs text-gray-500 mt-2">Output Shape: ${JSON.stringify(layer.outputShape)}</p>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('modelDetailsContent').innerHTML = detailsHTML;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    await refreshSavedModels();
+});
 
 // Performance monitoring
 console.log('TensorFlow.js backend:', tf.getBackend());
