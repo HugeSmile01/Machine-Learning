@@ -788,6 +788,212 @@ if (typeof module !== 'undefined' && module.exports) {
         getLayerExplanation,
         getHyperparameterExplanation,
         getPerformanceTips,
-        builtInDatasets
+        builtInDatasets,
+        batchPredict,
+        deployModel,
+        createProductionAPI
     };
+}
+
+// ==================== PRODUCTION DEPLOYMENT FEATURES ====================
+
+/**
+ * Batch prediction for production workloads
+ */
+async function batchPredict(model, inputData, batchSize = 32) {
+    const results = [];
+    const numBatches = Math.ceil(inputData.length / batchSize);
+    
+    for (let i = 0; i < numBatches; i++) {
+        const start = i * batchSize;
+        const end = Math.min(start + batchSize, inputData.length);
+        const batch = inputData.slice(start, end);
+        
+        const inputTensor = tf.tensor(batch);
+        const predictions = model.predict(inputTensor);
+        const predictionData = await predictions.data();
+        
+        results.push(...Array.from(predictionData));
+        
+        inputTensor.dispose();
+        predictions.dispose();
+        
+        await tf.nextFrame(); // Allow UI updates
+    }
+    
+    return results;
+}
+
+/**
+ * Deploy model configuration for production
+ */
+function deployModel(model, modelName, metadata = {}) {
+    const deploymentConfig = {
+        modelName: modelName,
+        version: metadata.version || '1.0.0',
+        inputShape: model.inputs[0].shape,
+        outputShape: model.outputs[0].shape,
+        architecture: model.layers.map(layer => ({
+            type: layer.getClassName(),
+            config: layer.getConfig()
+        })),
+        metadata: {
+            ...metadata,
+            deployedAt: new Date().toISOString(),
+            framework: 'TensorFlow.js',
+            frameworkVersion: tf.version.tfjs
+        },
+        endpoints: {
+            predict: `/api/v1/predict`,
+            batch: `/api/v1/batch-predict`,
+            health: `/api/v1/health`
+        }
+    };
+    
+    return deploymentConfig;
+}
+
+/**
+ * Create production REST API code
+ */
+function createProductionAPI(modelName, deploymentConfig) {
+    const code = `
+// Production REST API for ${modelName}
+const express = require('express');
+const tf = require('@tensorflow/tfjs-node');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
+const app = express();
+
+// Security middleware
+app.use(helmet());
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use('/api/', limiter);
+
+let model;
+
+// Load model on startup
+async function loadModel() {
+    try {
+        model = await tf.loadLayersModel('file://./models/${modelName}/model.json');
+        console.log('Model loaded successfully');
+    } catch (error) {
+        console.error('Failed to load model:', error);
+        process.exit(1);
+    }
+}
+
+// Health check endpoint
+app.get('/api/v1/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        model: '${modelName}',
+        version: '${deploymentConfig.version || '1.0.0'}',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Single prediction endpoint
+app.post('/api/v1/predict', async (req, res) => {
+    try {
+        const { data } = req.body;
+        
+        if (!data) {
+            return res.status(400).json({ error: 'Missing data field' });
+        }
+        
+        const inputTensor = tf.tensor(data);
+        const prediction = model.predict(inputTensor);
+        const result = await prediction.data();
+        
+        inputTensor.dispose();
+        prediction.dispose();
+        
+        res.json({
+            prediction: Array.from(result),
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Prediction error:', error);
+        res.status(500).json({ error: 'Prediction failed', message: error.message });
+    }
+});
+
+// Batch prediction endpoint
+app.post('/api/v1/batch-predict', async (req, res) => {
+    try {
+        const { data, batchSize = 32 } = req.body;
+        
+        if (!data || !Array.isArray(data)) {
+            return res.status(400).json({ error: 'Invalid data format' });
+        }
+        
+        // Process predictions in batches for efficiency
+        const results = [];
+        const numBatches = Math.ceil(data.length / batchSize);
+        
+        for (let i = 0; i < numBatches; i++) {
+            const start = i * batchSize;
+            const end = Math.min(start + batchSize, data.length);
+            const batch = data.slice(start, end);
+            
+            const inputTensor = tf.tensor(batch);
+            const predictions = model.predict(inputTensor);
+            const predictionData = await predictions.data();
+            
+            results.push(...Array.from(predictionData));
+            
+            inputTensor.dispose();
+            predictions.dispose();
+        }
+        
+        res.json({
+            predictions: results,
+            count: results.length,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Batch prediction error:', error);
+        res.status(500).json({ error: 'Batch prediction failed', message: error.message });
+    }
+});
+
+// Model information endpoint
+app.get('/api/v1/model-info', (req, res) => {
+    res.json(${JSON.stringify(deploymentConfig, null, 2)});
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+let server;
+
+loadModel().then(() => {
+    server = app.listen(PORT, () => {
+        console.log(\`Production API server running on port \${PORT}\`);
+        console.log(\`Health check: http://localhost:\${PORT}/api/v1/health\`);
+        console.log(\`Predict: POST http://localhost:\${PORT}/api/v1/predict\`);
+    });
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    if (server) {
+        server.close(() => {
+            console.log('HTTP server closed');
+        });
+    }
+});
+`;
+    
+    return code;
 }

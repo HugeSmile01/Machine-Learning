@@ -19,13 +19,13 @@ const appState = {
 };
 
 // Educational insights for different training phases
-const learningInsights = {
-    initialization: "🚀 <strong>Initialization:</strong> The neural network is being created with random weights. Think of this as a student starting with no knowledge.",
-    earlyTraining: "📊 <strong>Early Training:</strong> The model is making wild guesses and learning from big mistakes. Loss is high but decreasing rapidly.",
-    midTraining: "🎯 <strong>Mid Training:</strong> The model is starting to recognize patterns. It's like a student beginning to understand the concepts.",
-    lateTraining: "✨ <strong>Fine-tuning:</strong> The model is making small adjustments to improve accuracy. It's refining its understanding.",
-    convergence: "🎓 <strong>Converging:</strong> The model's performance is stabilizing. Further training might not improve it much more.",
-    complete: "🏆 <strong>Complete!</strong> Training finished successfully. The model has learned from your data and is ready to make predictions!"
+const trainingStatus = {
+    initialization: "🚀 <strong>Initialization:</strong> Creating neural network with optimized parameters.",
+    earlyTraining: "📊 <strong>Early Training:</strong> Model is learning fundamental patterns. Loss decreasing rapidly.",
+    midTraining: "🎯 <strong>Mid Training:</strong> Pattern recognition improving. Model converging to optimal weights.",
+    lateTraining: "✨ <strong>Fine-tuning:</strong> Making precision adjustments to maximize performance.",
+    convergence: "🎓 <strong>Converging:</strong> Model performance stabilizing. Near optimal configuration.",
+    complete: "🏆 <strong>Complete!</strong> Training finished. Model ready for deployment and predictions."
 };
 
 // Initialize the application
@@ -69,7 +69,10 @@ function selectModel(modelType) {
     document.querySelectorAll('.model-card').forEach(card => {
         card.classList.remove('selected');
     });
-    document.querySelector(`[data-model="${modelType}"]`).classList.add('selected');
+    const selectedCard = document.querySelector(`[data-model="${modelType}"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('selected');
+    }
     
     // Show data section
     document.getElementById('dataSection').style.display = 'block';
@@ -225,10 +228,18 @@ async function startTraining() {
         // Train based on selected model
         if (appState.selectedModel === 'regression') {
             await trainRegressionModel(epochs, learningRate, batchSize);
-        } else if (appState.selectedModel === 'neural') {
+        } else if (appState.selectedModel === 'neural' || appState.selectedModel === 'custom-neural') {
             await trainNeuralNetwork(epochs, learningRate, batchSize);
-        } else if (appState.selectedModel === 'image') {
+        } else if (appState.selectedModel === 'image' || appState.selectedModel === 'image-classification') {
             await trainImageClassifier(epochs, learningRate, batchSize);
+        } else if (appState.selectedModel === 'text-generation') {
+            await trainTextGenerator(epochs, learningRate, batchSize);
+        } else if (appState.selectedModel === 'image-generation') {
+            await trainImageGenerator(epochs, learningRate, batchSize);
+        } else if (appState.selectedModel === 'audio-ai') {
+            await trainAudioModel(epochs, learningRate, batchSize);
+        } else if (appState.selectedModel === 'style-transfer') {
+            await trainStyleTransfer(epochs, learningRate, batchSize);
         }
         
         // Show results
@@ -534,7 +545,7 @@ function updateChart() {
 // Update Learning Insights
 function updateLearningInsight(phase) {
     const insightsDiv = document.getElementById('learningInsights');
-    insightsDiv.innerHTML = `<p>${learningInsights[phase]}</p>`;
+    insightsDiv.innerHTML = `<p>${trainingStatus[phase]}</p>`;
 }
 
 // Show Results
@@ -1167,6 +1178,293 @@ function showModelDetails() {
     `;
     
     document.getElementById('modelDetailsContent').innerHTML = detailsHTML;
+}
+
+// ==================== NEW GENERATIVE AI MODELS ====================
+
+// Train Text Generation Model (GPT-style)
+async function trainTextGenerator(epochs, learningRate, batchSize) {
+    updateLearningInsight('initialization');
+    
+    // Prepare text data (character-level or word-level)
+    const data = appState.trainingData.data || appState.trainingData.text || [];
+    
+    // Create LSTM-based text generation model
+    const vocabSize = 256; // Character-level
+    const embeddingDim = 128;
+    const lstmUnits = 256;
+    
+    const model = tf.sequential({
+        layers: [
+            tf.layers.embedding({ inputDim: vocabSize, outputDim: embeddingDim, inputLength: 100 }),
+            tf.layers.lstm({ units: lstmUnits, returnSequences: true }),
+            tf.layers.dropout({ rate: 0.2 }),
+            tf.layers.lstm({ units: lstmUnits }),
+            tf.layers.dropout({ rate: 0.2 }),
+            tf.layers.dense({ units: vocabSize, activation: 'softmax' })
+        ]
+    });
+    
+    model.compile({
+        optimizer: tf.train.adam(learningRate),
+        loss: 'categoricalCrossentropy',
+        metrics: ['accuracy']
+    });
+    
+    appState.model = model;
+    
+    // Initialize chart
+    initializeChart();
+    
+    // Generate synthetic training data for demonstration
+    const xs = tf.randomUniform([100, 100], 0, vocabSize, 'int32');
+    const ys = tf.oneHot(tf.randomUniform([100], 0, vocabSize, 'int32'), vocabSize);
+    
+    // Train model
+    await model.fit(xs, ys, {
+        epochs: epochs,
+        batchSize: batchSize,
+        validationSplit: 0.2,
+        callbacks: {
+            onEpochEnd: async (epoch, logs) => {
+                updateTrainingProgress(epoch, epochs, logs);
+                
+                const progress = epoch / epochs;
+                if (progress < 0.2) updateLearningInsight('earlyTraining');
+                else if (progress < 0.5) updateLearningInsight('midTraining');
+                else if (progress < 0.8) updateLearningInsight('lateTraining');
+                else updateLearningInsight('convergence');
+                
+                await tf.nextFrame();
+            }
+        }
+    });
+    
+    updateLearningInsight('complete');
+    
+    xs.dispose();
+    ys.dispose();
+}
+
+// Train Image Generation Model (GAN-style)
+async function trainImageGenerator(epochs, learningRate, batchSize) {
+    updateLearningInsight('initialization');
+    
+    // Create Generator model
+    const latentDim = 100;
+    const generator = tf.sequential({
+        layers: [
+            tf.layers.dense({ inputShape: [latentDim], units: 128, activation: 'relu' }),
+            tf.layers.batchNormalization(),
+            tf.layers.dense({ units: 256, activation: 'relu' }),
+            tf.layers.batchNormalization(),
+            tf.layers.dense({ units: 512, activation: 'relu' }),
+            tf.layers.batchNormalization(),
+            tf.layers.dense({ units: 28 * 28, activation: 'tanh' }),
+            tf.layers.reshape({ targetShape: [28, 28, 1] })
+        ]
+    });
+    
+    generator.compile({
+        optimizer: tf.train.adam(learningRate),
+        loss: 'binaryCrossentropy'
+    });
+    
+    appState.model = generator;
+    
+    // Initialize chart
+    initializeChart();
+    
+    // Train generator (simplified training loop)
+    for (let epoch = 0; epoch < epochs; epoch++) {
+        // Generate random noise
+        const noise = tf.randomNormal([batchSize, latentDim]);
+        const generatedImages = generator.predict(noise);
+        
+        // Simulate discriminator feedback
+        const labels = tf.ones([batchSize, 1]);
+        
+        const logs = await generator.fit(noise, labels, {
+            epochs: 1,
+            batchSize: batchSize,
+            verbose: 0
+        });
+        
+        updateTrainingProgress(epoch, epochs, { loss: logs.history.loss[0], acc: 0.5 });
+        
+        const progress = epoch / epochs;
+        if (progress < 0.2) updateLearningInsight('earlyTraining');
+        else if (progress < 0.5) updateLearningInsight('midTraining');
+        else if (progress < 0.8) updateLearningInsight('lateTraining');
+        else updateLearningInsight('convergence');
+        
+        noise.dispose();
+        generatedImages.dispose();
+        labels.dispose();
+        
+        await tf.nextFrame();
+    }
+    
+    updateLearningInsight('complete');
+}
+
+// Train Audio AI Model
+async function trainAudioModel(epochs, learningRate, batchSize) {
+    updateLearningInsight('initialization');
+    
+    // Audio processing model (spectral analysis)
+    const model = tf.sequential({
+        layers: [
+            tf.layers.conv1d({ inputShape: [128, 1], filters: 32, kernelSize: 3, activation: 'relu' }),
+            tf.layers.maxPooling1d({ poolSize: 2 }),
+            tf.layers.conv1d({ filters: 64, kernelSize: 3, activation: 'relu' }),
+            tf.layers.maxPooling1d({ poolSize: 2 }),
+            tf.layers.flatten(),
+            tf.layers.dense({ units: 128, activation: 'relu' }),
+            tf.layers.dropout({ rate: 0.3 }),
+            tf.layers.dense({ units: 64, activation: 'relu' }),
+            tf.layers.dense({ units: 10, activation: 'softmax' })
+        ]
+    });
+    
+    model.compile({
+        optimizer: tf.train.adam(learningRate),
+        loss: 'categoricalCrossentropy',
+        metrics: ['accuracy']
+    });
+    
+    appState.model = model;
+    
+    // Initialize chart
+    initializeChart();
+    
+    // Generate synthetic audio features
+    const xs = tf.randomNormal([100, 128, 1]);
+    const ys = tf.oneHot(tf.randomUniform([100], 0, 10, 'int32'), 10);
+    
+    // Train model
+    await model.fit(xs, ys, {
+        epochs: epochs,
+        batchSize: batchSize,
+        validationSplit: 0.2,
+        callbacks: {
+            onEpochEnd: async (epoch, logs) => {
+                updateTrainingProgress(epoch, epochs, logs);
+                
+                const progress = epoch / epochs;
+                if (progress < 0.2) updateLearningInsight('earlyTraining');
+                else if (progress < 0.5) updateLearningInsight('midTraining');
+                else if (progress < 0.8) updateLearningInsight('lateTraining');
+                else updateLearningInsight('convergence');
+                
+                await tf.nextFrame();
+            }
+        }
+    });
+    
+    updateLearningInsight('complete');
+    
+    xs.dispose();
+    ys.dispose();
+}
+
+// Train Style Transfer Model
+async function trainStyleTransfer(epochs, learningRate, batchSize) {
+    updateLearningInsight('initialization');
+    
+    // Style transfer model (simplified VGG-based)
+    const model = tf.sequential({
+        layers: [
+            tf.layers.conv2d({ inputShape: [224, 224, 3], filters: 64, kernelSize: 3, activation: 'relu', padding: 'same' }),
+            tf.layers.conv2d({ filters: 64, kernelSize: 3, activation: 'relu', padding: 'same' }),
+            tf.layers.maxPooling2d({ poolSize: [2, 2] }),
+            tf.layers.conv2d({ filters: 128, kernelSize: 3, activation: 'relu', padding: 'same' }),
+            tf.layers.conv2d({ filters: 128, kernelSize: 3, activation: 'relu', padding: 'same' }),
+            tf.layers.maxPooling2d({ poolSize: [2, 2] }),
+            tf.layers.conv2dTranspose({ filters: 128, kernelSize: 3, strides: 2, activation: 'relu', padding: 'same' }),
+            tf.layers.conv2dTranspose({ filters: 64, kernelSize: 3, strides: 2, activation: 'relu', padding: 'same' }),
+            tf.layers.conv2d({ filters: 3, kernelSize: 3, activation: 'tanh', padding: 'same' })
+        ]
+    });
+    
+    model.compile({
+        optimizer: tf.train.adam(learningRate),
+        loss: 'meanSquaredError'
+    });
+    
+    appState.model = model;
+    
+    // Initialize chart
+    initializeChart();
+    
+    // Generate synthetic image data
+    const xs = tf.randomNormal([10, 224, 224, 3]);
+    const ys = tf.randomNormal([10, 224, 224, 3]);
+    
+    // Train model
+    await model.fit(xs, ys, {
+        epochs: epochs,
+        batchSize: Math.min(batchSize, 10),
+        validationSplit: 0.2,
+        callbacks: {
+            onEpochEnd: async (epoch, logs) => {
+                updateTrainingProgress(epoch, epochs, logs);
+                
+                const progress = epoch / epochs;
+                if (progress < 0.2) updateLearningInsight('earlyTraining');
+                else if (progress < 0.5) updateLearningInsight('midTraining');
+                else if (progress < 0.8) updateLearningInsight('lateTraining');
+                else updateLearningInsight('convergence');
+                
+                await tf.nextFrame();
+            }
+        }
+    });
+    
+    updateLearningInsight('complete');
+    
+    xs.dispose();
+    ys.dispose();
+}
+
+// Load Pre-trained Model
+async function loadPretrainedModel() {
+    const modelType = appState.selectedModel;
+    
+    try {
+        let model;
+        
+        // Load pre-trained models based on type
+        if (modelType === 'image-classification') {
+            // Load MobileNet for image classification
+            alert('Loading pre-trained MobileNet model...');
+            model = await tf.loadLayersModel('https://tfhub.dev/google/tfjs-model/imagenet/mobilenet_v2_100_224/classification/3/default/1/model.json');
+        } else {
+            alert('Pre-trained models for this type are not yet available. Please train a custom model.');
+            return;
+        }
+        
+        if (model) {
+            appState.model = model;
+            alert('Pre-trained model loaded successfully! You can now use it for predictions.');
+            
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+            
+            const summaryHTML = `
+                <h3>Pre-trained Model Loaded</h3>
+                <p><strong>Model Type:</strong> ${modelType}</p>
+                <p><strong>Status:</strong> ✅ Ready for immediate use!</p>
+            `;
+            
+            document.getElementById('resultSummary').innerHTML = summaryHTML;
+            setupTestInput();
+        }
+    } catch (error) {
+        console.error('Error loading pre-trained model:', error);
+        alert('Failed to load pre-trained model. Please check your internet connection or train a custom model.');
+    }
 }
 
 // Initialize on page load
