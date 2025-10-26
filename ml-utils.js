@@ -937,6 +937,7 @@ app.post('/api/v1/batch-predict', async (req, res) => {
             return res.status(400).json({ error: 'Invalid data format' });
         }
         
+        // Process predictions in batches for efficiency
         const results = [];
         const numBatches = Math.ceil(data.length / batchSize);
         
@@ -973,9 +974,10 @@ app.get('/api/v1/model-info', (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
+let server;
 
 loadModel().then(() => {
-    app.listen(PORT, () => {
+    server = app.listen(PORT, () => {
         console.log(\`Production API server running on port \${PORT}\`);
         console.log(\`Health check: http://localhost:\${PORT}/api/v1/health\`);
         console.log(\`Predict: POST http://localhost:\${PORT}/api/v1/predict\`);
@@ -985,9 +987,11 @@ loadModel().then(() => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
     console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
-        console.log('HTTP server closed');
-    });
+    if (server) {
+        server.close(() => {
+            console.log('HTTP server closed');
+        });
+    }
 });
 `;
     
